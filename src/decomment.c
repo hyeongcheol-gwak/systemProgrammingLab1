@@ -8,8 +8,8 @@ enum State {
     MULTI,
     STAR,
     SINGLE,
-    QUOTE,     // Integrated STRING and CHAR
-    QUOTE_ESC, // Integrated STR_ESC and CHAR_ESC
+    QUOTE,   
+    QUOTE_ESC,
 };
 
 // Global variables for line tracking
