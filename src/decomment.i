@@ -743,10 +743,8 @@ enum State {
     MULTI,
     STAR,
     SINGLE,
-    STRING,
-    STR_ESC,
-    CHAR,
-    CHAR_ESC
+    QUOTE,
+    QUOTE_ESC,
 };
 
 
@@ -754,13 +752,15 @@ int current_line = 1;
 int comment_line = 0;
 
 
+int quote_delim = 0;
+
+
 enum State handle_normal_state(int c);
 enum State handle_slash_state(int c);
 enum State handle_multi_state(int c);
 enum State handle_star_state(int c);
 enum State handle_single_state(int c);
-enum State handle_string_state(int c);
-enum State handle_char_state(int c);
+enum State handle_quote_state(int c);
 
 
 int main(void) {
@@ -784,10 +784,8 @@ int main(void) {
             case MULTI: state = handle_multi_state(c); break;
             case STAR: state = handle_star_state(c); break;
             case SINGLE: state = handle_single_state(c); break;
-            case STRING: state = handle_string_state(c); break;
-            case CHAR: state = handle_char_state(c); break;
-            case STR_ESC: putchar(c); state = STRING; break;
-            case CHAR_ESC: putchar(c); state = CHAR; break;
+            case QUOTE: state = handle_quote_state(c); break;
+            case QUOTE_ESC: putchar(c); state = QUOTE; break;
             default: break;
         }
     }
@@ -800,22 +798,22 @@ int main(void) {
 
     if (state == MULTI || state == STAR) {
         fprintf(
-# 63 "decomment.c" 3 4
+# 61 "decomment.c" 3 4
                stderr
-# 63 "decomment.c"
+# 61 "decomment.c"
                      , "Error: line %d: unterminated comment\n",
                 comment_line);
         return 
-# 65 "decomment.c" 3 4
+# 63 "decomment.c" 3 4
               1
-# 65 "decomment.c"
+# 63 "decomment.c"
                           ;
     }
 
     return 
-# 68 "decomment.c" 3 4
+# 66 "decomment.c" 3 4
           0
-# 68 "decomment.c"
+# 66 "decomment.c"
                       ;
 }
 
@@ -823,8 +821,10 @@ int main(void) {
 enum State handle_normal_state(int c) {
     if (c == '/') return SLASH;
     putchar(c);
-    if (c == '\"') return STRING;
-    if (c == '\'') return CHAR;
+    if (c == '\"' || c == '\'') {
+        quote_delim = c;
+        return QUOTE;
+    }
     return NORMAL;
 }
 
@@ -841,8 +841,11 @@ enum State handle_slash_state(int c) {
     }
 
     putchar('/');
-    if (c == '\"') { putchar(c); return STRING; }
-    if (c == '\'') { putchar(c); return CHAR; }
+    if (c == '\"' || c == '\'') {
+        putchar(c);
+        quote_delim = c;
+        return QUOTE;
+    }
     if (c == '/') return SLASH;
     putchar(c);
     return NORMAL;
@@ -880,17 +883,10 @@ enum State handle_single_state(int c) {
 }
 
 
-enum State handle_string_state(int c) {
+enum State handle_quote_state(int c) {
     putchar(c);
-    if (c == '\\') return STR_ESC;
-    if (c == '\"') return NORMAL;
-    return STRING;
-}
+    if (c == '\\') return QUOTE_ESC;
 
-
-enum State handle_char_state(int c) {
-    putchar(c);
-    if (c == '\\') return CHAR_ESC;
-    if (c == '\'') return NORMAL;
-    return CHAR;
+    if (c == quote_delim) return NORMAL;
+    return QUOTE;
 }

@@ -14,6 +14,12 @@ current_line:
 	.size	comment_line, 4
 comment_line:
 	.zero	4
+	.globl	quote_delim
+	.align 4
+	.type	quote_delim, @object
+	.size	quote_delim, 4
+quote_delim:
+	.zero	4
 	.section	.rodata
 	.align 8
 .LC0:
@@ -33,7 +39,7 @@ main:
 	subq	$16, %rsp
 	movl	$0, -8(%rbp)
 	jmp	.L2
-.L15:
+.L13:
 	cmpl	$10, -4(%rbp)
 	jne	.L3
 	cmpl	$2, -8(%rbp)
@@ -44,8 +50,8 @@ main:
 	addl	$1, %eax
 	movl	%eax, current_line(%rip)
 .L3:
-	cmpl	$8, -8(%rbp)
-	ja	.L20
+	cmpl	$6, -8(%rbp)
+	ja	.L18
 	movl	-8(%rbp), %eax
 	leaq	0(,%rax,4), %rdx
 	leaq	.L6(%rip), %rax
@@ -58,8 +64,6 @@ main:
 	.align 4
 	.align 4
 .L6:
-	.long	.L14-.L6
-	.long	.L13-.L6
 	.long	.L12-.L6
 	.long	.L11-.L6
 	.long	.L10-.L6
@@ -68,77 +72,65 @@ main:
 	.long	.L7-.L6
 	.long	.L5-.L6
 	.text
-.L14:
+.L12:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	handle_normal_state
 	movl	%eax, -8(%rbp)
 	jmp	.L2
-.L13:
+.L11:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	handle_slash_state
 	movl	%eax, -8(%rbp)
 	jmp	.L2
-.L12:
+.L10:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	handle_multi_state
 	movl	%eax, -8(%rbp)
 	jmp	.L2
-.L11:
+.L9:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	handle_star_state
 	movl	%eax, -8(%rbp)
 	jmp	.L2
-.L10:
+.L8:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	handle_single_state
 	movl	%eax, -8(%rbp)
 	jmp	.L2
-.L9:
-	movl	-4(%rbp), %eax
-	movl	%eax, %edi
-	call	handle_string_state
-	movl	%eax, -8(%rbp)
-	jmp	.L2
 .L7:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
-	call	handle_char_state
+	call	handle_quote_state
 	movl	%eax, -8(%rbp)
-	jmp	.L2
-.L8:
-	movl	-4(%rbp), %eax
-	movl	%eax, %edi
-	call	putchar@PLT
-	movl	$5, -8(%rbp)
 	jmp	.L2
 .L5:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	putchar@PLT
-	movl	$7, -8(%rbp)
+	movl	$5, -8(%rbp)
 	jmp	.L2
-.L20:
+.L18:
 	nop
 .L2:
 	call	getchar@PLT
 	movl	%eax, -4(%rbp)
 	cmpl	$-1, -4(%rbp)
-	jne	.L15
+	jne	.L13
 	cmpl	$1, -8(%rbp)
-	jne	.L16
+	jne	.L14
 	movl	$47, %edi
 	call	putchar@PLT
-.L16:
+.L14:
 	cmpl	$2, -8(%rbp)
-	je	.L17
+	je	.L15
 	cmpl	$3, -8(%rbp)
-	jne	.L18
-.L17:
+	jne	.L16
+.L15:
 	movl	comment_line(%rip), %edx
 	movq	stderr(%rip), %rax
 	leaq	.LC0(%rip), %rcx
@@ -147,10 +139,10 @@ main:
 	movl	$0, %eax
 	call	fprintf@PLT
 	movl	$1, %eax
-	jmp	.L19
-.L18:
+	jmp	.L17
+.L16:
 	movl	$0, %eax
-.L19:
+.L17:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
@@ -171,25 +163,25 @@ handle_normal_state:
 	subq	$16, %rsp
 	movl	%edi, -4(%rbp)
 	cmpl	$47, -4(%rbp)
-	jne	.L22
+	jne	.L20
 	movl	$1, %eax
-	jmp	.L23
-.L22:
+	jmp	.L21
+.L20:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	putchar@PLT
 	cmpl	$34, -4(%rbp)
-	jne	.L24
-	movl	$5, %eax
-	jmp	.L23
-.L24:
+	je	.L22
 	cmpl	$39, -4(%rbp)
-	jne	.L25
-	movl	$7, %eax
-	jmp	.L23
-.L25:
-	movl	$0, %eax
+	jne	.L23
+.L22:
+	movl	-4(%rbp), %eax
+	movl	%eax, quote_delim(%rip)
+	movl	$5, %eax
+	jmp	.L21
 .L23:
+	movl	$0, %eax
+.L21:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
@@ -210,49 +202,46 @@ handle_slash_state:
 	subq	$16, %rsp
 	movl	%edi, -4(%rbp)
 	cmpl	$42, -4(%rbp)
-	jne	.L27
+	jne	.L25
 	movl	$32, %edi
 	call	putchar@PLT
 	movl	current_line(%rip), %eax
 	movl	%eax, comment_line(%rip)
 	movl	$2, %eax
-	jmp	.L28
-.L27:
+	jmp	.L26
+.L25:
 	cmpl	$47, -4(%rbp)
-	jne	.L29
+	jne	.L27
 	movl	$32, %edi
 	call	putchar@PLT
 	movl	$4, %eax
-	jmp	.L28
-.L29:
+	jmp	.L26
+.L27:
 	movl	$47, %edi
 	call	putchar@PLT
 	cmpl	$34, -4(%rbp)
-	jne	.L30
-	movl	-4(%rbp), %eax
-	movl	%eax, %edi
-	call	putchar@PLT
-	movl	$5, %eax
-	jmp	.L28
-.L30:
+	je	.L28
 	cmpl	$39, -4(%rbp)
-	jne	.L31
+	jne	.L29
+.L28:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	putchar@PLT
-	movl	$7, %eax
-	jmp	.L28
-.L31:
+	movl	-4(%rbp), %eax
+	movl	%eax, quote_delim(%rip)
+	movl	$5, %eax
+	jmp	.L26
+.L29:
 	cmpl	$47, -4(%rbp)
-	jne	.L32
+	jne	.L30
 	movl	$1, %eax
-	jmp	.L28
-.L32:
+	jmp	.L26
+.L30:
 	movl	-4(%rbp), %eax
 	movl	%eax, %edi
 	call	putchar@PLT
 	movl	$0, %eax
-.L28:
+.L26:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
@@ -273,20 +262,20 @@ handle_multi_state:
 	subq	$16, %rsp
 	movl	%edi, -4(%rbp)
 	cmpl	$42, -4(%rbp)
-	jne	.L34
+	jne	.L32
 	movl	$3, %eax
-	jmp	.L35
-.L34:
+	jmp	.L33
+.L32:
 	cmpl	$10, -4(%rbp)
-	jne	.L36
+	jne	.L34
 	movl	$10, %edi
 	call	putchar@PLT
 	movl	current_line(%rip), %eax
 	addl	$1, %eax
 	movl	%eax, current_line(%rip)
-.L36:
+.L34:
 	movl	$2, %eax
-.L35:
+.L33:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
@@ -307,27 +296,27 @@ handle_star_state:
 	subq	$16, %rsp
 	movl	%edi, -4(%rbp)
 	cmpl	$47, -4(%rbp)
-	jne	.L38
+	jne	.L36
 	movl	$0, %eax
-	jmp	.L39
-.L38:
+	jmp	.L37
+.L36:
 	cmpl	$42, -4(%rbp)
-	jne	.L40
+	jne	.L38
 	movl	$3, %eax
-	jmp	.L39
-.L40:
+	jmp	.L37
+.L38:
 	cmpl	$10, -4(%rbp)
-	jne	.L41
+	jne	.L39
 	movl	$10, %edi
 	call	putchar@PLT
 	movl	current_line(%rip), %eax
 	addl	$1, %eax
 	movl	%eax, current_line(%rip)
 	movl	$2, %eax
-	jmp	.L39
-.L41:
-	movl	$2, %eax
+	jmp	.L37
 .L39:
+	movl	$2, %eax
+.L37:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
@@ -348,23 +337,23 @@ handle_single_state:
 	subq	$16, %rsp
 	movl	%edi, -4(%rbp)
 	cmpl	$10, -4(%rbp)
-	jne	.L43
+	jne	.L41
 	movl	$10, %edi
 	call	putchar@PLT
 	movl	$0, %eax
-	jmp	.L44
-.L43:
+	jmp	.L42
+.L41:
 	movl	$4, %eax
-.L44:
+.L42:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
 .LFE5:
 	.size	handle_single_state, .-handle_single_state
-	.globl	handle_string_state
-	.type	handle_string_state, @function
-handle_string_state:
+	.globl	handle_quote_state
+	.type	handle_quote_state, @function
+handle_quote_state:
 .LFB6:
 	.cfi_startproc
 	endbr64
@@ -379,57 +368,24 @@ handle_string_state:
 	movl	%eax, %edi
 	call	putchar@PLT
 	cmpl	$92, -4(%rbp)
-	jne	.L46
+	jne	.L44
 	movl	$6, %eax
-	jmp	.L47
-.L46:
-	cmpl	$34, -4(%rbp)
-	jne	.L48
+	jmp	.L45
+.L44:
+	movl	quote_delim(%rip), %eax
+	cmpl	%eax, -4(%rbp)
+	jne	.L46
 	movl	$0, %eax
-	jmp	.L47
-.L48:
+	jmp	.L45
+.L46:
 	movl	$5, %eax
-.L47:
+.L45:
 	leave
 	.cfi_def_cfa 7, 8
 	ret
 	.cfi_endproc
 .LFE6:
-	.size	handle_string_state, .-handle_string_state
-	.globl	handle_char_state
-	.type	handle_char_state, @function
-handle_char_state:
-.LFB7:
-	.cfi_startproc
-	endbr64
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	.cfi_offset 6, -16
-	movq	%rsp, %rbp
-	.cfi_def_cfa_register 6
-	subq	$16, %rsp
-	movl	%edi, -4(%rbp)
-	movl	-4(%rbp), %eax
-	movl	%eax, %edi
-	call	putchar@PLT
-	cmpl	$92, -4(%rbp)
-	jne	.L50
-	movl	$8, %eax
-	jmp	.L51
-.L50:
-	cmpl	$39, -4(%rbp)
-	jne	.L52
-	movl	$0, %eax
-	jmp	.L51
-.L52:
-	movl	$7, %eax
-.L51:
-	leave
-	.cfi_def_cfa 7, 8
-	ret
-	.cfi_endproc
-.LFE7:
-	.size	handle_char_state, .-handle_char_state
+	.size	handle_quote_state, .-handle_quote_state
 	.ident	"GCC: (Ubuntu 11.4.0-1ubuntu1~22.04.3) 11.4.0"
 	.section	.note.GNU-stack,"",@progbits
 	.section	.note.gnu.property,"a"
