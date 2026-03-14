@@ -14,12 +14,12 @@ int main(int argc, char **argv) {
   l
   d!**
   */
- \n/*hi everyone*/);
+ \n/*hi everyone*/);"
 
   /* 
 		END 
 		OF 
-		*PROGRAM/ ***/
+		*PROGRAM/ **
 	
 
 
